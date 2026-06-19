@@ -240,6 +240,11 @@ final class CameraController: NSObject, ObservableObject {
     }
 
     private func capturePhoto() {
+        guard session.isRunning, activeDevice != nil, photoOutput.connection(with: .video) != nil else {
+            publishStatus("카메라가 아직 준비되지 않았습니다.")
+            return
+        }
+
         let settings = AVCapturePhotoSettings()
         settings.photoQualityPrioritization = .quality
 
@@ -265,6 +270,11 @@ final class CameraController: NSObject, ObservableObject {
 
     private func startRecording() {
         guard !movieOutput.isRecording else { return }
+        guard session.isRunning, activeDevice != nil, movieOutput.connection(with: .video) != nil else {
+            publishStatus("카메라가 아직 준비되지 않았습니다.")
+            return
+        }
+
         setTorchForRecordingIfNeeded(true)
 
         let url = FileManager.default.temporaryDirectory
@@ -288,16 +298,17 @@ final class CameraController: NSObject, ObservableObject {
     }
 
     private func savePhoto(_ data: Data) {
-        var placeholderIdentifier: String?
+        let thumbnail = UIImage(data: data)
 
         PHPhotoLibrary.shared().performChanges {
             let request = PHAssetCreationRequest.forAsset()
             request.addResource(with: .photo, data: data, options: nil)
-            placeholderIdentifier = request.placeholderForCreatedAsset?.localIdentifier
         } completionHandler: { [weak self] success, _ in
             guard let self else { return }
-            if success, let placeholderIdentifier {
-                self.loadRecentMedia(identifier: placeholderIdentifier, kind: .photo)
+            if success {
+                if let thumbnail {
+                    self.updateRecentMedia(kind: .photo, thumbnail: thumbnail)
+                }
                 self.publishStatus("사진이 저장되었습니다.")
             } else {
                 self.publishStatus("사진 저장에 실패했습니다.")
@@ -306,17 +317,18 @@ final class CameraController: NSObject, ObservableObject {
     }
 
     private func saveVideo(at url: URL) {
-        var placeholderIdentifier: String?
+        let thumbnail = makeVideoThumbnail(url: url)
 
         PHPhotoLibrary.shared().performChanges {
             let request = PHAssetCreationRequest.forAsset()
             request.addResource(with: .video, fileURL: url, options: nil)
-            placeholderIdentifier = request.placeholderForCreatedAsset?.localIdentifier
         } completionHandler: { [weak self] success, _ in
             try? FileManager.default.removeItem(at: url)
             guard let self else { return }
-            if success, let placeholderIdentifier {
-                self.loadRecentMedia(identifier: placeholderIdentifier, kind: .video)
+            if success {
+                if let thumbnail {
+                    self.updateRecentMedia(kind: .video, thumbnail: thumbnail)
+                }
                 self.publishStatus("동영상이 저장되었습니다.")
             } else {
                 self.publishStatus("동영상 저장에 실패했습니다.")
@@ -324,25 +336,22 @@ final class CameraController: NSObject, ObservableObject {
         }
     }
 
-    private func loadRecentMedia(identifier: String, kind: RecentMediaKind) {
-        let assets = PHAsset.fetchAssets(withLocalIdentifiers: [identifier], options: nil)
-        guard let asset = assets.firstObject else { return }
+    private func updateRecentMedia(kind: RecentMediaKind, thumbnail: UIImage) {
+        Task { @MainActor in
+            recentMedia = RecentMedia(kind: kind, thumbnail: thumbnail)
+        }
+    }
 
-        let options = PHImageRequestOptions()
-        options.deliveryMode = .highQualityFormat
-        options.resizeMode = .exact
-        options.isSynchronous = false
+    private func makeVideoThumbnail(url: URL) -> UIImage? {
+        let asset = AVURLAsset(url: url)
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
 
-        PHImageManager.default().requestImage(
-            for: asset,
-            targetSize: CGSize(width: 240, height: 240),
-            contentMode: .aspectFill,
-            options: options
-        ) { [weak self] image, _ in
-            guard let self, let image else { return }
-            Task { @MainActor in
-                self.recentMedia = RecentMedia(kind: kind, assetIdentifier: identifier, thumbnail: image)
-            }
+        do {
+            let image = try generator.copyCGImage(at: .zero, actualTime: nil)
+            return UIImage(cgImage: image)
+        } catch {
+            return nil
         }
     }
 

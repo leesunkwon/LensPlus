@@ -1,4 +1,3 @@
-import Photos
 import SwiftUI
 
 struct CameraView: View {
@@ -11,17 +10,25 @@ struct CameraView: View {
             ZStack {
                 Color.black.ignoresSafeArea()
 
-                CameraPreview(controller: camera)
-                    .ignoresSafeArea()
-                    .opacity(camera.permissionState == .authorized ? 1 : 0)
-                    .gesture(tapGesture)
-                    .simultaneousGesture(zoomGesture)
-
-                if let focusIndicator = camera.focusIndicator {
-                    FocusRing()
-                        .position(focusIndicator.point)
-                        .transition(.scale.combined(with: .opacity))
+                VStack(spacing: 0) {
+                    CameraPreview(controller: camera)
+                        .aspectRatio(0.75, contentMode: .fit)
+                        .frame(maxWidth: .infinity)
+                        .opacity(camera.permissionState == .authorized ? 1 : 0)
+                        .clipped()
+                        .gesture(tapGesture)
+                        .simultaneousGesture(zoomGesture)
+                        .overlay(alignment: .topLeading) {
+                            if let focusIndicator = camera.focusIndicator {
+                                FocusRing()
+                                    .position(focusIndicator.point)
+                                    .transition(.scale.combined(with: .opacity))
+                            }
+                        }
+                    Spacer(minLength: 0)
                 }
+                .padding(.top, proxy.safeAreaInsets.top)
+                .ignoresSafeArea(edges: .bottom)
 
                 cameraChrome(proxy: proxy)
 
