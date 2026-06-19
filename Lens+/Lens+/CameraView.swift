@@ -11,7 +11,7 @@ struct CameraView: View {
                 Color.black.ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    CameraPreview(controller: camera, isMirrored: camera.cameraPosition == .front)
+                    CameraPreview(controller: camera)
                         .frame(width: proxy.size.width, height: proxy.size.width * 4 / 3)
                         .opacity(camera.permissionState == .authorized ? 1 : 0)
                         .clipped()

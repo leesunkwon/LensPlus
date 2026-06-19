@@ -393,7 +393,7 @@ final class CameraController: NSObject, ObservableObject {
             guard let connection = previewLayer.connection else { return }
             if connection.isVideoMirroringSupported {
                 connection.automaticallyAdjustsVideoMirroring = false
-                connection.isVideoMirrored = false
+                connection.isVideoMirrored = activeDevice?.position == .front
             }
         }
     }
