@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# Xcode user state
+xcuserdata/
+*.xcuserstate
+
+# Build outputs
+DerivedData/
+build/
+*.ipa
+*.dSYM.zip
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Secrets
+Secrets.xcconfig
