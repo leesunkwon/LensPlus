@@ -123,6 +123,7 @@ final class CameraController: NSObject, ObservableObject {
                     self.videoInput = nextInput
                     self.activeDevice = nextDevice
                     self.updateVideoConnectionMirroring()
+                    self.updatePreviewLayerConfiguration()
                 }
                 self.session.commitConfiguration()
 
@@ -187,6 +188,12 @@ final class CameraController: NSObject, ObservableObject {
         setZoomFactor(baseZoom * scale)
     }
 
+    func attachPreviewLayer(_ layer: AVCaptureVideoPreviewLayer) {
+        previewLayer = layer
+        layer.session = session
+        updatePreviewLayerConfiguration()
+    }
+
     private func configureSession() {
         sessionQueue.async { [weak self] in
             guard let self else { return }
@@ -226,6 +233,7 @@ final class CameraController: NSObject, ObservableObject {
                 }
 
                 self.updateVideoConnectionMirroring()
+                self.updatePreviewLayerConfiguration()
                 self.session.commitConfiguration()
 
                 Task { @MainActor in
@@ -375,6 +383,22 @@ final class CameraController: NSObject, ObservableObject {
         movieOutput.connection(with: .video)?.isVideoMirrored = shouldMirror
         photoOutput.connection(with: .video)?.automaticallyAdjustsVideoMirroring = false
         photoOutput.connection(with: .video)?.isVideoMirrored = shouldMirror
+    }
+
+    private func updatePreviewLayerConfiguration() {
+        Task { @MainActor in
+            guard let previewLayer else { return }
+            previewLayer.videoGravity = .resizeAspectFill
+
+            guard let connection = previewLayer.connection else { return }
+            if connection.isVideoMirroringSupported {
+                connection.automaticallyAdjustsVideoMirroring = false
+                connection.isVideoMirrored = activeDevice?.position == .front
+            }
+            if connection.isVideoOrientationSupported {
+                connection.videoOrientation = .portrait
+            }
+        }
     }
 
     private func setTorchForRecordingIfNeeded(_ enabled: Bool) {

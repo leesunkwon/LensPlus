@@ -12,8 +12,7 @@ struct CameraView: View {
 
                 VStack(spacing: 0) {
                     CameraPreview(controller: camera)
-                        .aspectRatio(0.75, contentMode: .fit)
-                        .frame(maxWidth: .infinity)
+                        .frame(width: proxy.size.width, height: proxy.size.width * 4 / 3)
                         .opacity(camera.permissionState == .authorized ? 1 : 0)
                         .clipped()
                         .gesture(tapGesture)

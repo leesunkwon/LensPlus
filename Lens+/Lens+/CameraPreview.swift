@@ -7,15 +7,12 @@ struct CameraPreview: UIViewRepresentable {
 
     func makeUIView(context: Context) -> PreviewView {
         let view = PreviewView()
-        view.videoPreviewLayer.session = controller.session
-        view.videoPreviewLayer.videoGravity = .resizeAspectFill
-        controller.previewLayer = view.videoPreviewLayer
+        controller.attachPreviewLayer(view.videoPreviewLayer)
         return view
     }
 
     func updateUIView(_ uiView: PreviewView, context: Context) {
-        uiView.videoPreviewLayer.session = controller.session
-        controller.previewLayer = uiView.videoPreviewLayer
+        controller.attachPreviewLayer(uiView.videoPreviewLayer)
     }
 }
 
@@ -26,5 +23,10 @@ final class PreviewView: UIView {
 
     var videoPreviewLayer: AVCaptureVideoPreviewLayer {
         layer as! AVCaptureVideoPreviewLayer
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        videoPreviewLayer.frame = bounds
     }
 }
