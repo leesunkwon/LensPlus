@@ -45,7 +45,6 @@ enum RecentMediaKind {
 struct RecentMedia: Identifiable {
     let id = UUID()
     let kind: RecentMediaKind
-    let assetIdentifier: String
     let thumbnail: UIImage
 }
 
