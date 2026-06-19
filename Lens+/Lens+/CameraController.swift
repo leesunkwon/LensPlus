@@ -379,22 +379,28 @@ final class CameraController: NSObject, ObservableObject {
 
     private func updateVideoConnectionMirroring() {
         let shouldMirror = activeDevice?.position == .front
-        movieOutput.connection(with: .video)?.automaticallyAdjustsVideoMirroring = false
-        movieOutput.connection(with: .video)?.isVideoMirrored = shouldMirror
-        photoOutput.connection(with: .video)?.automaticallyAdjustsVideoMirroring = false
-        photoOutput.connection(with: .video)?.isVideoMirrored = shouldMirror
+        configureVideoConnection(movieOutput.connection(with: .video), isMirrored: shouldMirror)
+        configureVideoConnection(photoOutput.connection(with: .video), isMirrored: shouldMirror)
     }
 
     private func updatePreviewLayerConfiguration() {
         Task { @MainActor in
             guard let previewLayer else { return }
             previewLayer.videoGravity = .resizeAspectFill
+            configureVideoConnection(previewLayer.connection, isMirrored: activeDevice?.position == .front)
+        }
+    }
 
-            guard let connection = previewLayer.connection else { return }
-            if connection.isVideoMirroringSupported {
-                connection.automaticallyAdjustsVideoMirroring = false
-                connection.isVideoMirrored = activeDevice?.position == .front
-            }
+    private func configureVideoConnection(_ connection: AVCaptureConnection?, isMirrored: Bool) {
+        guard let connection else { return }
+
+        if connection.isVideoRotationAngleSupported(90) {
+            connection.videoRotationAngle = 90
+        }
+
+        if connection.isVideoMirroringSupported {
+            connection.automaticallyAdjustsVideoMirroring = false
+            connection.isVideoMirrored = isMirrored
         }
     }
 
